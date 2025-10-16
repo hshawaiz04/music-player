@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Music Player</title>
+
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Inline theme & range styling (no external CSS file) -->
+  <style>
+    /* rotation */
+    @keyframes rotateAlbum { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }
+
+    @keyframes glowAlbum {
+  0%, 100% {
+    box-shadow: 0 0 25px var(--accent-start), 0 0 50px var(--accent-end);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 50px var(--accent-end), 0 0 100px var(--accent-start);
+    transform: scale(1.02);
+  }
+}
+
+
+    /* Theme variables (default purple) */
+    :root{
+      --bg-start: #1f1240;
+      --bg-end: #3f2e78;
+      --accent-start: #7b61ff;
+      --accent-end: #ff6b6b;
+      --fill: linear-gradient(90deg,var(--accent-start),var(--accent-end));
+      --range-bg: rgba(255,255,255,0.06);
+      --text-color: #e6eef8;
+      --thumb-color: #7b61ff;
+      --visualizer-color: rgba(139,92,246,0.8);
+    }
+
+    /* Neon theme (black + neon pink) */
+    .neon{
+      --bg-start: #000000;
+      --bg-end: #0b0014;
+      --accent-start: #ff007f;
+      --accent-end: #ff66b2;
+      --fill: linear-gradient(90deg,var(--accent-start),var(--accent-end));
+      --range-bg: rgba(255,255,255,0.04);
+      --text-color: #ffeaff;
+      --thumb-color: #ff007f;
+      --visualizer-color: rgba(255,0,127,0.9);
+      
+    }
+
+    .neon #cover {
+  box-shadow: 0 0 40px var(--accent-start), 0 0 80px var(--accent-end);
+}
+
+/* Smooth transition for the album cover */
+#cover {
+  transition: box-shadow 0.22s ease, transform 0.22s ease;
+}
+
+
+    /* Progress gradient uses CSS var */
+    #progressBar {
+      background: var(--fill);
+      border-radius: inherit;
+    }
+
+    /* Range baseline */
+    input[type="range"]{
+      -webkit-appearance:none;
+      appearance:none;
+      height:8px;
+      background: var(--range-bg);
+      border-radius:999px;
+      outline:none;
+    }
+    input[type="range"]::-webkit-slider-thumb{
+      -webkit-appearance:none;
+      appearance:none;
+      width:16px;height:16px;border-radius:50%;
+      background: var(--thumb-color);
+      border:3px solid rgba(255,255,255,0.9);
+      box-shadow:0 4px 10px rgba(0,0,0,0.25);
+      margin-top:-4px;
+    }
+    input[type="range"]::-moz-range-thumb{
+      width:16px;height:16px;border-radius:50%;
+      background: var(--thumb-color);
+      border:3px solid rgba(255,255,255,0.9);
+      box-shadow:0 4px 10px rgba(0,0,0,0.25);
+    }
+
+    /* small helper so Tailwind text classes adapt to theme color */
+    .text-adapt { color: var(--text-color) !important; }
+  </style>
+</head>
+<body class="min-h-screen flex justify-center items-center" style="background: linear-gradient(135deg,var(--bg-start),var(--bg-end)); color:var(--text-color)">
+
+  <div class="w-full max-w-6xl p-6">
+    <header class="flex justify-between items-center mb-6">
+      <h1 class="text-2xl font-semibold">🎧 My Music Player</h1>
+      <button id="themeBtn" class="bg-white/10 hover:bg-white/20 px-3 py-2 rounded-lg">🌙</button>
+    </header>
+
+    <main class="grid lg:grid-cols-3 gap-6">
+      <!-- LEFT -->
+      <section class="lg:col-span-2 bg-white/5 rounded-xl p-6 flex flex-col gap-6">
+        <div class="flex flex-col md:flex-row items-center gap-6">
+          <div class="w-56 h-56 rounded-xl overflow-hidden shadow-lg">
+            <img id="cover" src="assets/cover1.jpg" alt="Album cover" class="w-full h-full object-cover transition-transform duration-500" />
+          </div>
+
+          <div class="flex-1 text-center md:text-left">
+            <div id="title" class="text-2xl font-bold">Loading...</div>
+            <div id="artist" class="text-sm text-slate-300 mt-1 text-adapt">—</div>
+
+            <div class="flex justify-center md:justify-start items-center gap-4 mt-4">
+              <button id="prev" class="text-2xl p-2 bg-white/10 rounded-lg hover:bg-white/20">⏮</button>
+              <button id="play" class="text-2xl p-2 bg-white/10 rounded-lg hover:bg-white/20">▶</button>
+              <button id="next" class="text-2xl p-2 bg-white/10 rounded-lg hover:bg-white/20">⏭</button>
+            </div>
+
+            <div class="flex justify-center md:justify-start items-center gap-3 mt-4">
+              <button id="shuffle" class="px-2 py-1 bg-white/10 rounded">🔀</button>
+              <button id="repeat" class="px-2 py-1 bg-white/10 rounded">🔁</button>
+              <button id="like" class="px-2 py-1 bg-white/10 rounded">♡</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Progress -->
+        <div class="flex items-center gap-3 mt-2">
+          <span id="currentTime" class="text-xs w-12 text-slate-400 text-adapt">0:00</span>
+          <div id="progress" class="flex-1 h-2 bg-white/10 rounded cursor-pointer overflow-hidden">
+            <div id="progressBar" class="h-full w-0"></div>
+          </div>
+          <span id="duration" class="text-xs w-12 text-right text-slate-400 text-adapt">0:00</span>
+        </div>
+
+        <!-- Volume + Speed -->
+        <div class="flex flex-wrap justify-between items-center gap-4">
+          <div class="flex items-center gap-2">
+            <label for="volume" class="text-sm text-slate-300 text-adapt">🔊 Volume</label>
+            <input id="volume" type="range" min="0" max="1" step="0.01" value="0.8" class="w-40">
+          </div>
+          <div class="flex items-center gap-2">
+            <label for="speed" class="text-sm text-slate-300 text-adapt">Speed</label>
+            <select id="speed" class="bg-white/10 rounded px-2 py-1">
+              <option value="0.75">0.75x</option>
+              <option value="1" selected>1x</option>
+              <option value="1.25">1.25x</option>
+              <option value="1.5">1.5x</option>
+            </select>
+          </div>
+        </div>
+
+        <canvas id="visualizer" class="w-full h-28 mt-3 rounded-lg"></canvas>
+      </section>
+
+      <!-- RIGHT -->
+      <aside class="bg-white/5 rounded-xl p-4 flex flex-col gap-3">
+        <div class="flex flex-wrap gap-2 items-center justify-between">
+          <input id="search" placeholder="Search songs..." class="flex-1 bg-white/10 rounded px-3 py-2 text-sm text-white" />
+          <input id="fileAdd" type="file" accept="audio/*" multiple class="text-xs" />
+          <button id="importBtn" class="px-3 py-2 bg-white/10 rounded hover:bg-white/20">Export</button>
+        </div>
+        <ul id="playlist" class="overflow-auto divide-y divide-white/10 h-96 p-1 rounded"></ul>
+      </aside>
+    </main>
+
+    <audio id="audio"></audio>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
